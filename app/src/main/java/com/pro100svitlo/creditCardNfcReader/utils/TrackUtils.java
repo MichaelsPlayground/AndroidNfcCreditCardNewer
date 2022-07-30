@@ -38,11 +38,21 @@ public final class TrackUtils {
 	 */
 	public static boolean extractTrack2Data(final EmvCard pEmvCard, final byte[] pData) {
 		boolean ret = false;
+		System.out.println("#*# extractTrack2Data using");
+		System.out.println("#*# EmvTags.TRACK_2_EQV_DATA:" + EmvTags.TRACK_2_EQV_DATA);
+		System.out.println("#*# EmvTags.TRACK_2_DATA:" + EmvTags.TRACK2_DATA);
 		byte[] track2 = TlvUtil.getValue(pData, EmvTags.TRACK_2_EQV_DATA, EmvTags.TRACK2_DATA);
 
 		if (track2 != null) {
+			System.out.println("#*# extractTrack2Data track2 is NOT NULL");
+			System.out.println("#*# extractTrack2Data data:");
 			String data = BytesUtils.bytesToStringNoSpace(track2);
+			System.out.println("#*# " + data);
 			Matcher m = TRACK2_PATTERN.matcher(data);
+			System.out.println("#*# matcher " + m);
+			System.out.println("#*# group 1 " + m.group(1));
+			System.out.println("#*# group 2 " + m.group(2));
+			System.out.println("#*# group 3 " + m.group(3));
 			// Check pattern
 			if (m.find()) {
 				// read card number

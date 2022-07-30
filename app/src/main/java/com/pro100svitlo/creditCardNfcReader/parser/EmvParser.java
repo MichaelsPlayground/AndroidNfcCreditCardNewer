@@ -97,9 +97,13 @@ public class EmvParser {
 	 */
 	public EmvCard readEmvCard() throws CommunicationException {
 		// use PSE first
+
 		if (!readWithPSE()) {
 			// Find with AID
+			System.out.println("#*# readWithAID");
 			readWithAID();
+		} else {
+			System.out.println("#*# readWithPSE");
 		}
 		return card;
 	}
@@ -111,8 +115,10 @@ public class EmvParser {
 	 * @throws CommunicationException
 	 */
 	protected byte[] selectPaymentEnvironment() throws CommunicationException {
+		System.out.println("#*# contactLess: " + contactLess + "TRUE = PPSE " + (contactLess ? "PPSE" : "PSE"));
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("Select " + (contactLess ? "PPSE" : "PSE") + " Application");
+
 		}
 		// Select the PPSE or PSE directory
 		return provider.transceive(new CommandApdu(CommandEnum.SELECT, contactLess ? PPSE : PSE, 0).toBytes());
@@ -197,18 +203,22 @@ public class EmvParser {
 	 */
 	protected boolean readWithPSE() throws CommunicationException {
 		boolean ret = false;
+		System.out.println("#*# start of readWithPSE");
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("Try to read card with Payment System Environment");
 		}
 		// Select the PPSE or PSE directory
 		byte[] data = selectPaymentEnvironment();
 		if (ResponseUtils.isSucceed(data)) {
+			System.out.println("#*# ResponseUtils.isSucceed(data) = TRUE");
 			// Parse FCI Template
 			data = parseFCIProprietaryTemplate(data);
 			// Extract application label
 			if (ResponseUtils.isSucceed(data)) {
+				System.out.println("#*# parseFCIProprietaryTemplate ResponseUtils.isSucceed(data) = TRUE");
 				// Get Aids
 				List<byte[]> aids = getAids(data);
+				System.out.println("#*# List of aids size: " + aids.size());
 				for (byte[] aid : aids) {
 					ret = extractPublicData(aid, extractApplicationLabel(data));
 					if (ret == true) {
@@ -218,9 +228,13 @@ public class EmvParser {
 				if (!ret) {
 					card.setNfcLocked(true);
 				}
+			} else {
+				System.out.println("#*# parseFCIProprietaryTemplate ResponseUtils.isSucceed(data) = FALSE");
 			}
-		} else if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug((contactLess ? "PPSE" : "PSE") + " not found -> Use kown AID");
+		} else {
+			System.out.println("#*# ResponseUtils.isSucceed(data) = FALSE");
+			if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug((contactLess ? "PPSE" : "PSE") + " not found -> Use kown AID");}
 		}
 
 		return ret;
@@ -293,18 +307,28 @@ public class EmvParser {
 		boolean ret = false;
 		// Select AID
 		byte[] data = selectAID(pAid);
+		System.out.println("#*# extractPublicData pAid: " + BytesUtils.bytesToStringNoSpace(pAid));
+		System.out.println("#*# extractPublicData data from selectAID(pAid)");
+		System.out.println("#*# " + BytesUtils.bytesToStringNoSpace(data));
 		// check response
 		if (ResponseUtils.isSucceed(data)) {
 			// Parse select response
 			ret = parse(data, provider);
+			System.out.println("#*# extractPublicData data after parse(data): " + ret);
+
 			if (ret) {
 				// Get AID
 				String aid = BytesUtils.bytesToStringNoSpace(TlvUtil.getValue(data, EmvTags.DEDICATED_FILE_NAME));
+				System.out.println("#*# extractPublicData");
+				System.out.println("#*# extractPublicData pApplicationLabel: " + pApplicationLabel);
+				System.out.println("#*# extractPublicData aid: " + aid);
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("Application label:" + pApplicationLabel + " with Aid:" + aid);
 				}
 				card.setAid(aid);
+				System.out.println("#*# extractPublicData card.getCardNumber: " + card.getCardNumber());
 				card.setType(findCardScheme(aid, card.getCardNumber()));
+
 				card.setApplicationLabel(pApplicationLabel);
 				card.setLeftPinTry(getLeftPinTry());
 			}
@@ -351,11 +375,13 @@ public class EmvParser {
 		boolean ret = false;
 		// Get TLV log entry
 		byte[] logEntry = getLogEntry(pSelectResponse);
+		System.out.println("#*# parse logEntry: " + BytesUtils.bytesToStringNoSpace(logEntry));
 		// Get PDOL
 		byte[] pdol = TlvUtil.getValue(pSelectResponse, EmvTags.PDOL);
+		System.out.println("#*# parse pdol: " + BytesUtils.bytesToStringNoSpace(pdol));
 		// Send GPO Command
 		byte[] gpo = getGetProcessingOptions(pdol, pProvider);
-
+		System.out.println("#*# gpo: " + BytesUtils.bytesToStringNoSpace(gpo));
 		// Check empty PDOL
 		if (!ResponseUtils.isSucceed(gpo)) {
 			gpo = getGetProcessingOptions(null, pProvider);
@@ -385,14 +411,24 @@ public class EmvParser {
 	protected boolean extractCommonsCardData(final byte[] pGpo) throws CommunicationException {
 		boolean ret = false;
 		// Extract data from Message Template 1
+		System.out.println("#*# extractCommonsCardData try to read via Message Template 1");
 		byte data[] = TlvUtil.getValue(pGpo, EmvTags.RESPONSE_MESSAGE_TEMPLATE_1);
+		if (data == null) {
+			System.out.println("#*# extractCommonsCardData data: is NULL");
+		} else {
+			System.out.println("#*# extractCommonsCardData data: is NOT NULL");
+		}
 		if (data != null) {
+			System.out.println("#*# extractCommonsCardData could be read via Message Template 1");
 			data = ArrayUtils.subarray(data, 2, data.length);
 		} else { // Extract AFL data from Message template 2
+			System.out.println("#*# extractCommonsCardData try to read via Message Template 2");
 			ret = TrackUtils.extractTrack2Data(card, pGpo);
 			if (!ret) {
+				System.out.println("#*# extractCommonsCardData could be read via Message Template 2");
 				data = TlvUtil.getValue(pGpo, EmvTags.APPLICATION_FILE_LOCATOR);
 			} else {
+				System.out.println("#*# extractCommonsCardData just extract CardHolderName");
 				extractCardHolderName(pGpo);
 			}
 		}

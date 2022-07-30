@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity implements CardNfcAsyncTask.
     //implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     // ACHTUNG warnung: Vulnerabilities from dependencies: CVE-2020-15250
 
+    // ### This is a debug version meaning it has a log of printouts to get the source of some data
+
     private CardNfcAsyncTask mCardNfcAsyncTask;
     private Toolbar mToolbar;
     private LinearLayout mCardReadyContent;
@@ -87,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements CardNfcAsyncTask.
                 //###mPutCardContent.setVisibility(View.VISIBLE);
                 //###mCardReadyContent.setVisibility(View.GONE);
             }
+
             mCardNfcUtils.enableDispatch();
         }
     }
